@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { SteamAPI } from '@/lib/steam-api'
 
+export const dynamic = 'force-dynamic'
+
 const profileRequestSchema = z.object({
   ids: z.string().min(1, 'Steam IDs are required'),
 })

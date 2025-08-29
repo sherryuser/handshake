@@ -5,6 +5,8 @@ import { SteamAPI } from '@/lib/steam-api'
 import { prisma } from '@/lib/prisma'
 import { formatSteamId, isSteamId64 } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 const handshakeRequestSchema = z.object({
   source: z.string().min(1, 'Source Steam ID is required'),
   target: z.string().min(1, 'Target Steam ID is required'),

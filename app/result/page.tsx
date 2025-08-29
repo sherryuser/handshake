@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Clock, Eye, AlertCircle, Home, RotateCcw } from 'lucide-react'
@@ -11,7 +11,7 @@ import { ShareButton } from '@/components/ShareButton'
 import { SkeletonLoader } from '@/components/SkeletonLoader'
 import { SearchResponse } from '@/types'
 
-export default function ResultPage() {
+function ResultPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [result, setResult] = useState<SearchResponse | null>(null)
@@ -284,5 +284,13 @@ export default function ResultPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
+      <ResultPageContent />
+    </Suspense>
   )
 }
