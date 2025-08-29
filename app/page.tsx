@@ -30,20 +30,23 @@ export default function HomePage() {
   }
 
   const handleSearch = async (target: string) => {
+    // Require login to use handshake feature
+    if (!steamUser) {
+      alert('Please log in with Steam to use the handshake feature!')
+      return
+    }
+
     setIsSearching(true)
     setSearchResult(null)
 
     try {
-      // Use logged-in user's Steam ID or demo user
-      const sourceId = steamUser?.steamid || '76561198046783516'
-
       const response = await fetch('/api/handshake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          source: sourceId,
+          source: steamUser.steamid,
           target: target,
         }),
       })
@@ -58,7 +61,7 @@ export default function HomePage() {
       
       // Navigate to results page after a short delay to show the result
       setTimeout(() => {
-        router.push(`/result?source=${demoSourceId}&target=${target}`)
+        router.push(`/result?source=${steamUser.steamid}&target=${target}`)
       }, 1500)
 
     } catch (error) {
@@ -157,8 +160,7 @@ export default function HomePage() {
             className="text-xl text-white/80 mb-8 max-w-2xl mx-auto"
             variants={itemVariants}
           >
-            Discover the shortest connection path between Steam users through their friend networks.
-            Find out how many degrees of separation exist between you and any other Steam user.
+            Find the shortest connection path between you and any Steam user or professional CS2 player.
           </motion.p>
         </motion.header>
 
@@ -217,50 +219,7 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Features Grid */}
-        <motion.div variants={itemVariants} className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
-          <Card className="glass-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-blue-400" />
-                Fast Search Algorithm
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-white/70">
-                Uses bidirectional BFS to efficiently find the shortest path between any two Steam users
-              </p>
-            </CardContent>
-          </Card>
 
-          <Card className="glass-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Steam className="h-5 w-5 mr-2 text-blue-400" />
-                Steam Integration
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-white/70">
-                Connects directly to Steam&apos;s API to access real friend networks and user data
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <ExternalLink className="h-5 w-5 mr-2 text-blue-400" />
-                Share Results
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-white/70">
-                Share your connection discoveries with beautiful OpenGraph previews on social media
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
 
         {/* Login Status Notice */}
         <motion.div variants={itemVariants} className="text-center">
@@ -289,32 +248,7 @@ export default function HomePage() {
           </Card>
         </motion.div>
 
-        {/* Footer */}
-        <motion.footer variants={itemVariants} className="text-center mt-16 text-white/60">
-          <div className="flex items-center justify-center space-x-6">
-            <a 
-              href="https://github.com" 
-              className="flex items-center space-x-2 hover:text-white transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Github className="h-4 w-4" />
-              <span>GitHub</span>
-            </a>
-            <a 
-              href="https://steamcommunity.com"
-              className="flex items-center space-x-2 hover:text-white transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Steam className="h-4 w-4" />
-              <span>Steam Community</span>
-            </a>
-          </div>
-          <p className="mt-4 text-sm">
-            Made with ❤️ for the Steam gaming community
-          </p>
-        </motion.footer>
+
       </motion.div>
     </div>
   )
