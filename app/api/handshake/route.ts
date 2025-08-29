@@ -18,7 +18,13 @@ export async function POST(request: NextRequest) {
     const { source, target } = handshakeRequestSchema.parse(body)
 
     // Check if Steam API key is available
+    console.log('Steam API Key status:', {
+      present: !!process.env.STEAM_API_KEY,
+      value: process.env.STEAM_API_KEY === 'DEMO_MODE' ? 'DEMO_MODE' : process.env.STEAM_API_KEY ? 'SET' : 'MISSING'
+    })
+
     if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'DEMO_MODE') {
+      console.log('Steam API not available - returning demo error')
       return NextResponse.json({
         success: false,
         errorMessage: 'Steam API is not available in demo mode. Please configure a valid Steam API key.',
@@ -64,8 +70,9 @@ export async function POST(request: NextRequest) {
       const resolvedId = await SteamAPI.resolveVanityURL(sourceId)
       console.log('Source resolved to:', resolvedId)
       if (!resolvedId) {
+        console.log('Failed to resolve source Steam ID:', sourceId)
         return NextResponse.json(
-          { error: 'Invalid source Steam ID or vanity URL' },
+          { error: `Invalid source Steam ID or vanity URL: ${sourceId}` },
           { status: 400 }
         )
       }
@@ -77,8 +84,9 @@ export async function POST(request: NextRequest) {
       const resolvedId = await SteamAPI.resolveVanityURL(targetId)
       console.log('Target resolved to:', resolvedId)
       if (!resolvedId) {
+        console.log('Failed to resolve target Steam ID:', targetId)
         return NextResponse.json(
-          { error: 'Invalid target Steam ID or vanity URL' },
+          { error: `Invalid target Steam ID or vanity URL: ${targetId}` },
           { status: 400 }
         )
       }
@@ -97,8 +105,14 @@ export async function POST(request: NextRequest) {
     ])
 
     if (!sourceUser || !targetUser) {
+      console.log('Failed to fetch user information:', { 
+        sourceUser: !!sourceUser, 
+        targetUser: !!targetUser,
+        sourceId,
+        targetId 
+      })
       return NextResponse.json(
-        { error: 'Failed to fetch user information' },
+        { error: `Failed to fetch user information - Source: ${!!sourceUser}, Target: ${!!targetUser}` },
         { status: 400 }
       )
     }
