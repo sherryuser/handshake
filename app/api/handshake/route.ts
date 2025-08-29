@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
           targetId: targetId,
           degree: result.degree,
           success: result.success,
-          path: result.path ? result.path.map(user => user.steamid) : null,
+          path: result.path ? result.path.map(user => user.steamid) : undefined,
           errorMessage: result.errorMessage,
         }
       })
