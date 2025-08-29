@@ -83,10 +83,17 @@ export class SteamAPI {
       console.log('Using Steam API key:', STEAM_API_KEY.slice(0, 8) + '...' + STEAM_API_KEY.slice(-4))
 
       const cacheKey = `user:${steamId}`
-      const cached = await redis.get(cacheKey)
       
-      if (cached) {
-        return JSON.parse(cached as string)
+      // Try to get from cache, but don't fail if Redis is down
+      let cached = null
+      try {
+        cached = await redis.get(cacheKey)
+        if (cached) {
+          console.log('Found user in cache:', steamId)
+          return JSON.parse(cached as string)
+        }
+      } catch (redisError) {
+        console.warn('Redis cache failed, continuing without cache:', redisError)
       }
 
       const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamId}`
@@ -98,14 +105,19 @@ export class SteamAPI {
       console.log('Steam API response for user summary:', {
         status: response.status,
         hasPlayers: !!data.response?.players?.length,
-        playerCount: data.response?.players?.length || 0
+        playerCount: data.response?.players?.length || 0,
+        fullResponse: data
       })
       
       if (data.response?.players?.length > 0) {
         const user = data.response.players[0]
         
-        // Cache for 1 hour
-        await redis.setex(cacheKey, 3600, JSON.stringify(user))
+        // Try to cache for 1 hour, but don't fail if Redis is down
+        try {
+          await redis.setex(cacheKey, 3600, JSON.stringify(user))
+        } catch (redisError) {
+          console.warn('Failed to cache user data, continuing without cache:', redisError)
+        }
         
         return user
       }
@@ -171,11 +183,16 @@ export class SteamAPI {
     try {
       // Check cache first (cache for 30 minutes)
       const cacheKey = `friends:${steamId}`
-      const cached = await redis.get(cacheKey) as string | null
+      let cached = null
       
-      if (cached) {
-        const cachedData: CachedFriendList = JSON.parse(cached)
-        return cachedData.friends
+      try {
+        cached = await redis.get(cacheKey) as string | null
+        if (cached) {
+          const cachedData: CachedFriendList = JSON.parse(cached)
+          return cachedData.friends
+        }
+      } catch (redisError) {
+        console.warn('Redis cache failed for friends list, continuing without cache:', redisError)
       }
 
       const url = `${BASE_URL}/ISteamUser/GetFriendList/v0001/?key=${STEAM_API_KEY}&steamid=${steamId}&relationship=friend`
@@ -198,7 +215,11 @@ export class SteamAPI {
           timestamp: Date.now(),
           isPrivate: false
         }
-        await redis.setex(cacheKey, 1800, JSON.stringify(cacheData)) // 30 minutes
+        try {
+          await redis.setex(cacheKey, 1800, JSON.stringify(cacheData)) // 30 minutes
+        } catch (redisError) {
+          console.warn('Failed to cache friends list, continuing without cache:', redisError)
+        }
         
         return friendIds
       }
