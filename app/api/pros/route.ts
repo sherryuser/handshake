@@ -69,7 +69,26 @@ const STATIC_PROS = [
 
 export async function GET() {
   try {
-    // Try to get pros from database first
+    // First try to get real pro players from CS Market Cap API
+    try {
+      const csMarketCapResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/pros/csmarketcap`)
+      
+      if (csMarketCapResponse.ok) {
+        const csMarketCapData = await csMarketCapResponse.json()
+        
+        if (csMarketCapData.pros && csMarketCapData.pros.length > 0) {
+          return NextResponse.json({
+            pros: csMarketCapData.pros,
+            count: csMarketCapData.count,
+            source: 'csmarketcap_live'
+          })
+        }
+      }
+    } catch (apiError) {
+      console.log('CS Market Cap API unavailable, falling back to database/static data')
+    }
+
+    // Try to get pros from database
     let pros = await prisma.pro.findMany({
       orderBy: {
         handle: 'asc'

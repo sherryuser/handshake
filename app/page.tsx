@@ -99,10 +99,10 @@ export default function HomePage() {
               <span className="text-xl font-bold text-white">Steam Handshakes</span>
             </div>
             
-            {/* Demo Login Button */}
-            <Button variant="glass" size="sm" disabled>
+            {/* Steam Login Button */}
+            <Button variant="glass" size="sm" onClick={() => window.open('https://steamcommunity.com/openid/login', '_blank')}>
               <Steam className="h-4 w-4 mr-2" />
-              Login with Steam (Demo)
+              Login with Steam
             </Button>
           </div>
 

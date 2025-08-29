@@ -12,8 +12,9 @@ export interface SteamUser {
 export interface ProPlayer {
   id64: string
   handle: string
-  team?: string
+  team?: string | null
   aliases: string[]
+  profile_url?: string
 }
 
 export interface HandshakeResult {
