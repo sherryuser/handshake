@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('=== HANDSHAKE API ERROR ===')
-    console.error('Error type:', error.constructor.name)
-    console.error('Error message:', error.message)
+    console.error('Error type:', (error as Error).constructor.name)
+    console.error('Error message:', (error as Error).message)
     console.error('Full error:', error)
     
     if (error instanceof z.ZodError) {
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: (error as Error).message },
       { status: 500 }
     )
   }
