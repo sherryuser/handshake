@@ -1,7 +1,7 @@
 import { SteamUser, CachedFriendList } from '@/types'
 import { redis } from './redis'
 
-const STEAM_API_KEY = process.env.STEAM_API_KEY!
+const STEAM_API_KEY = process.env.STEAM_API_KEY || 'F2D6AEBB4CC99E083ED54026DA5A3049'
 const BASE_URL = 'https://api.steampowered.com'
 
 export class SteamAPIError extends Error {
@@ -79,6 +79,8 @@ export class SteamAPI {
         console.error('Steam API key is missing or in demo mode')
         return null
       }
+
+      console.log('Using Steam API key:', STEAM_API_KEY.slice(0, 8) + '...' + STEAM_API_KEY.slice(-4))
 
       const cacheKey = `user:${steamId}`
       const cached = await redis.get(cacheKey)
