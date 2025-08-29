@@ -7,6 +7,7 @@ const nextConfig = {
       'steamuserimages-a.akamaihd.net',
     ],
   },
+  output: 'standalone',
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
