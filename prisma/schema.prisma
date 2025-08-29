@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id64       String   @id // Steam ID64
+  name       String
+  avatar     String
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  // Relations
+  requestedSearches Search[] @relation("RequesterSearches")
+  targetSearches    Search[] @relation("TargetSearches")
+  counter           Counter?
+
+  @@map("users")
+}
+
+model Pro {
+  id64    String   @id // Steam ID64
+  handle  String   @unique
+  team    String?
+  aliases String[] // Array for PostgreSQL
+
+  @@map("pros")
+}
+
+model Search {
+  id           String   @id @default(cuid())
+  requesterId  String   @map("requester_id64")
+  targetId     String   @map("target_id64")
+  degree       Int?     // Number of handshakes, null if failed
+  success      Boolean  @default(false)
+  path         Json?    // JSON array of Steam IDs representing the path
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  requester User @relation("RequesterSearches", fields: [requesterId], references: [id64])
+  target    User @relation("TargetSearches", fields: [targetId], references: [id64])
+
+  @@map("searches")
+}
+
+model Counter {
+  entityId64  String @id @map("entity_id64") // Steam ID64
+  searchCount Int    @default(0) @map("search_count")
+
+  // Relations
+  user User @relation(fields: [entityId64], references: [id64])
+
+  @@map("counters")
+}

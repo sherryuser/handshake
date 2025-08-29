@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "app/api/handshake/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/og/route.tsx": {
+      "maxDuration": 10
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
