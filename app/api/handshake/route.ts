@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { HandshakeAlgorithm } from '@/lib/handshake-algorithm'
 import { SteamAPI } from '@/lib/steam-api'
 import { prisma } from '@/lib/prisma'
-import { formatSteamId, isSteamId64 } from '@/lib/utils'
+import { formatSteamId, isSteamId64, extractSteamIdFromUrl } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
