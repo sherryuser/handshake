@@ -112,34 +112,34 @@ export class HandshakeAlgorithm {
 
       // Get initial friend lists
       const [sourceFriends, targetFriends] = await Promise.all([
-        SteamAPI.getFriendList(sourceId),
-        SteamAPI.getFriendList(targetId)
+        SteamAPI.getFriendsList(sourceId),
+        SteamAPI.getFriendsList(targetId)
       ])
 
-      if (sourceFriends.isPrivate) {
+      if (sourceFriends.length === 0) {
         const result: HandshakeResult = {
           success: false,
           degree: null,
           path: [],
-          errorMessage: 'Source profile is private'
+          errorMessage: 'Source profile has no friends or is private'
         }
         await this.setCachedResult(sourceId, targetId, result)
         return result
       }
 
-      if (targetFriends.isPrivate) {
+      if (targetFriends.length === 0) {
         const result: HandshakeResult = {
           success: false,
           degree: null,
           path: [],
-          errorMessage: 'Target profile is private'
+          errorMessage: 'Target profile has no friends or is private'
         }
         await this.setCachedResult(sourceId, targetId, result)
         return result
       }
 
       // Check for direct friendship (1 degree)
-      if (sourceFriends.friends.includes(targetId)) {
+      if (sourceFriends.includes(targetId)) {
         const result: HandshakeResult = {
           success: true,
           degree: 1,
@@ -263,12 +263,12 @@ export class HandshakeAlgorithm {
       
       if (current.distance >= maxDepth) continue
 
-      const friendList = await SteamAPI.getFriendList(current.steamid)
+      const friendList = await SteamAPI.getFriendsList(current.steamid)
       
-      if (friendList.isPrivate) continue
+      if (friendList.length === 0) continue
 
       // Limit friends to prevent explosion
-      const friends = friendList.friends.slice(0, MAX_NODES_PER_LEVEL)
+      const friends = friendList.slice(0, MAX_NODES_PER_LEVEL)
       
       for (const friendId of friends) {
         // Check if we've met the other search
