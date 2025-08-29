@@ -133,40 +133,62 @@ export class SteamAPI {
     if (steamIds.length === 0) return []
     
     try {
-      // Check cache first
-      const cacheKeys = steamIds.map(id => `user:${id}`)
-      const cached = await redis.mget(...cacheKeys)
       const results: SteamUser[] = []
-      const uncachedIds: string[] = []
+      let uncachedIds: string[] = steamIds // Default to fetch all if cache fails
       
-      cached.forEach((item: string | null, index: number) => {
-        if (item) {
-          results[index] = JSON.parse(item)
-        } else {
-          uncachedIds.push(steamIds[index])
-        }
-      })
+      // Try to check cache first, but don't fail if Redis is down
+      try {
+        const cacheKeys = steamIds.map(id => `user:${id}`)
+        const cached = await redis.mget(...cacheKeys)
+        uncachedIds = []
+        
+        cached.forEach((item: string | null, index: number) => {
+          if (item) {
+            results[index] = JSON.parse(item)
+          } else {
+            uncachedIds.push(steamIds[index])
+          }
+        })
+      } catch (redisError) {
+        console.warn('Redis cache failed for user summaries, fetching all from API:', redisError)
+        uncachedIds = steamIds
+      }
       
       if (uncachedIds.length > 0) {
         const steamIdsParam = uncachedIds.join(',')
         const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamIdsParam}`
+        console.log('Fetching user summaries from Steam API:', { url, count: uncachedIds.length })
+        
         const response = await this.fetchWithRetry(url)
         const data = await response.json()
+        
+        console.log('Steam API response for user summaries:', {
+          status: response.status,
+          playersCount: data.response?.players?.length || 0,
+          players: data.response?.players?.map((p: SteamUser) => ({ steamid: p.steamid, personaname: p.personaname }))
+        })
         
         if (data.response?.players) {
           const users = data.response.players
           
-          // Cache the results
-          const cachePromises = users.map((user: SteamUser) => 
-            redis.setex(`user:${user.steamid}`, 3600, JSON.stringify(user))
-          )
-          await Promise.all(cachePromises)
+          // Try to cache the results, but don't fail if Redis is down
+          try {
+            const cachePromises = users.map((user: SteamUser) => 
+              redis.setex(`user:${user.steamid}`, 3600, JSON.stringify(user))
+            )
+            await Promise.all(cachePromises)
+          } catch (redisError) {
+            console.warn('Failed to cache user summaries, continuing without cache:', redisError)
+          }
           
           // Fill in the results array
           users.forEach((user: SteamUser) => {
             const index = steamIds.indexOf(user.steamid)
             if (index !== -1) {
               results[index] = user
+            } else {
+              // If not using cache, just add all users
+              results.push(user)
             }
           })
         }
