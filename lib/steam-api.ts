@@ -97,9 +97,9 @@ export class SteamAPI {
       const results: SteamUser[] = []
       const uncachedIds: string[] = []
       
-      cached.forEach((item, index) => {
+      cached.forEach((item: string | null, index: number) => {
         if (item) {
-          results[index] = JSON.parse(item as string)
+          results[index] = JSON.parse(item)
         } else {
           uncachedIds.push(steamIds[index])
         }
@@ -145,7 +145,7 @@ export class SteamAPI {
       
       if (cached) {
         const cachedData: CachedFriendList = JSON.parse(cached)
-        return cachedData.friendIds
+        return cachedData.friends
       }
 
       const url = `${BASE_URL}/ISteamUser/GetFriendList/v0001/?key=${STEAM_API_KEY}&steamid=${steamId}&relationship=friend`
@@ -163,9 +163,10 @@ export class SteamAPI {
         
         // Cache the result
         const cacheData: CachedFriendList = {
-          steamId,
-          friendIds,
-          cachedAt: new Date()
+          steamid: steamId,
+          friends: friendIds,
+          timestamp: Date.now(),
+          isPrivate: false
         }
         await redis.setex(cacheKey, 1800, JSON.stringify(cacheData)) // 30 minutes
         
