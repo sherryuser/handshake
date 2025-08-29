@@ -59,7 +59,7 @@ export class SteamAPI {
   }
 
   static async getUserSummary(steamId: string): Promise<SteamUser | null> {
-    try { {
+    try {
       const cacheKey = `user:${steamId}`
       const cached = await redis.get(cacheKey)
       
@@ -92,92 +92,90 @@ export class SteamAPI {
     
     try {
       // Check cache first
-      const users: SteamUser[] = []
+      const cacheKeys = steamIds.map(id => `user:${id}`)
+      const cached = await redis.mget(...cacheKeys)
+      const results: SteamUser[] = []
       const uncachedIds: string[] = []
       
-      for (const steamId of steamIds) {
-        const cacheKey = `user:${steamId}`
-        const cached = await redis.get(cacheKey)
-        
-        if (cached) {
-          users.push(JSON.parse(cached as string))
+      cached.forEach((item, index) => {
+        if (item) {
+          results[index] = JSON.parse(item as string)
         } else {
-          uncachedIds.push(steamId)
+          uncachedIds.push(steamIds[index])
         }
-      }
+      })
       
-      // Fetch uncached users
       if (uncachedIds.length > 0) {
-        const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${uncachedIds.join(',')}`
+        const steamIdsParam = uncachedIds.join(',')
+        const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamIdsParam}`
         const response = await this.fetchWithRetry(url)
         const data = await response.json()
         
         if (data.response?.players) {
-          for (const user of data.response.players) {
-            users.push(user)
-            
-            // Cache for 1 hour
-            const cacheKey = `user:${user.steamid}`
-            await redis.setex(cacheKey, 3600, JSON.stringify(user))
-          }
+          const users = data.response.players
+          
+          // Cache the results
+          const cachePromises = users.map((user: SteamUser) => 
+            redis.setex(`user:${user.steamid}`, 3600, JSON.stringify(user))
+          )
+          await Promise.all(cachePromises)
+          
+          // Fill in the results array
+          users.forEach((user: SteamUser) => {
+            const index = steamIds.indexOf(user.steamid)
+            if (index !== -1) {
+              results[index] = user
+            }
+          })
         }
       }
       
-      return users
+      return results.filter(Boolean) // Remove any undefined entries
     } catch (error) {
       console.error('Error fetching user summaries:', error)
       return []
     }
   }
 
-  static async getFriendList(steamId: string): Promise<CachedFriendList> {
+  static async getFriendsList(steamId: string): Promise<string[]> {
     try {
+      // Check cache first (cache for 30 minutes)
       const cacheKey = `friends:${steamId}`
-      const cached = await redis.get(cacheKey)
+      const cached = await redis.get(cacheKey) as string | null
       
       if (cached) {
-        return JSON.parse(cached as string)
+        const cachedData: CachedFriendList = JSON.parse(cached)
+        return cachedData.friendIds
       }
 
       const url = `${BASE_URL}/ISteamUser/GetFriendList/v0001/?key=${STEAM_API_KEY}&steamid=${steamId}&relationship=friend`
       const response = await this.fetchWithRetry(url)
       
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
         // Private profile
-        const result: CachedFriendList = {
-          steamid: steamId,
-          friends: [],
-          timestamp: Date.now(),
-          isPrivate: true
-        }
-        
-        // Cache private profile status for 1 day
-        await redis.setex(cacheKey, 86400, JSON.stringify(result))
-        return result
+        return []
       }
       
       const data = await response.json()
-      const friends = data.friendslist?.friends?.map((friend: any) => friend.steamid) || []
       
-      const result: CachedFriendList = {
-        steamid: steamId,
-        friends: friends.slice(0, 300), // Limit to prevent excessive branching
-        timestamp: Date.now(),
-        isPrivate: false
+      if (data.friendslist?.friends) {
+        const friendIds = data.friendslist.friends.map((friend: any) => friend.steamid)
+        
+        // Cache the result
+        const cacheData: CachedFriendList = {
+          steamId,
+          friendIds,
+          cachedAt: new Date()
+        }
+        await redis.setex(cacheKey, 1800, JSON.stringify(cacheData)) // 30 minutes
+        
+        return friendIds
       }
       
-      // Cache for 7 days
-      await redis.setex(cacheKey, 604800, JSON.stringify(result))
-      
-      return result
+      return []
     } catch (error) {
-      console.error('Error fetching friend list:', error)
-      return {
-        steamid: steamId,
-        friends: [],
-        timestamp: Date.now(),
-        isPrivate: true
-      }
+      console.error('Error fetching friends list:', error)
+      return []
     }
   }
 
