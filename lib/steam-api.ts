@@ -1,7 +1,7 @@
 import { SteamUser, CachedFriendList } from '@/types'
 import { redis } from './redis'
 
-const STEAM_API_KEY = process.env.STEAM_API_KEY || 'F2D6AEBB4CC99E083ED54026DA5A3049'
+const STEAM_API_KEY = process.env.STEAM_API_KEY
 const BASE_URL = 'https://api.steampowered.com'
 
 export class SteamAPIError extends Error {
@@ -80,8 +80,6 @@ export class SteamAPI {
         return null
       }
 
-      console.log('Using Steam API key:', STEAM_API_KEY.slice(0, 8) + '...' + STEAM_API_KEY.slice(-4))
-
       const cacheKey = `user:${steamId}`
       
       // Try to get from cache, but don't fail if Redis is down
@@ -89,7 +87,7 @@ export class SteamAPI {
       try {
         cached = await redis.get(cacheKey)
         if (cached) {
-          console.log('Found user in cache:', steamId)
+
           return JSON.parse(cached as string)
         }
       } catch (redisError) {
@@ -97,17 +95,8 @@ export class SteamAPI {
       }
 
       const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamId}`
-      console.log('Fetching user summary for:', steamId)
-      
       const response = await this.fetchWithRetry(url)
       const data = await response.json()
-      
-      console.log('Steam API response for user summary:', {
-        status: response.status,
-        hasPlayers: !!data.response?.players?.length,
-        playerCount: data.response?.players?.length || 0,
-        fullResponse: data
-      })
       
       if (data.response?.players?.length > 0) {
         const user = data.response.players[0]
@@ -157,16 +146,8 @@ export class SteamAPI {
       if (uncachedIds.length > 0) {
         const steamIdsParam = uncachedIds.join(',')
         const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamIdsParam}`
-        console.log('Fetching user summaries from Steam API:', { url, count: uncachedIds.length })
-        
         const response = await this.fetchWithRetry(url)
         const data = await response.json()
-        
-        console.log('Steam API response for user summaries:', {
-          status: response.status,
-          playersCount: data.response?.players?.length || 0,
-          players: data.response?.players?.map((p: SteamUser) => ({ steamid: p.steamid, personaname: p.personaname }))
-        })
         
         if (data.response?.players) {
           const users = data.response.players

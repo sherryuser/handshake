@@ -134,37 +134,18 @@ export default function HomePage() {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="glass" 
-                  size="sm" 
-                  onClick={() => {
-                    const returnUrl = encodeURIComponent(`${window.location.origin}/auth/steam/callback`)
-                    const steamLoginUrl = `https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=${returnUrl}&openid.realm=${encodeURIComponent(window.location.origin)}&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select`
-                    window.location.href = steamLoginUrl
-                  }}
-                >
-                  <Steam className="h-4 w-4 mr-2" />
-                  Login with Steam
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    // Demo login for testing
-                    const demoUser = {
-                      steamid: '76561198046783516',
-                      personaname: 'Demo User',
-                      avatar: 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg'
-                    }
-                    localStorage.setItem('steamUser', JSON.stringify(demoUser))
-                    setSteamUser(demoUser)
-                  }}
-                  className="text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black"
-                >
-                  Demo Login
-                </Button>
-              </div>
+              <Button 
+                variant="glass" 
+                size="sm" 
+                onClick={() => {
+                  const returnUrl = encodeURIComponent(`${window.location.origin}/auth/steam/callback`)
+                  const steamLoginUrl = `https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=${returnUrl}&openid.realm=${encodeURIComponent(window.location.origin)}&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select`
+                  window.location.href = steamLoginUrl
+                }}
+              >
+                <Steam className="h-4 w-4 mr-2" />
+                Login with Steam
+              </Button>
             )}
           </div>
 

@@ -37,12 +37,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch user summaries (temporarily using individual calls)
-    console.log('Fetching users for IDs:', steamIds)
-    const userPromises = steamIds.map(id => SteamAPI.getUserSummary(id))
-    const userResults = await Promise.all(userPromises)
-    const users = userResults.filter(Boolean) // Remove null results
-    console.log('Fetched users:', users.length, 'out of', steamIds.length)
+    // Fetch user summaries
+    const users = await SteamAPI.getUserSummaries(steamIds)
 
     return NextResponse.json({
       users,
