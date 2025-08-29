@@ -59,7 +59,7 @@ export class SteamAPI {
   }
 
   static async getUserSummary(steamId: string): Promise<SteamUser | null> {
-    try {
+    try { {
       const cacheKey = `user:${steamId}`
       const cached = await redis.get(cacheKey)
       

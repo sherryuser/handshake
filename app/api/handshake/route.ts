@@ -17,13 +17,52 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { source, target } = handshakeRequestSchema.parse(body)
 
-    // Format and validate Steam IDs
-    let sourceId = formatSteamId(source)
-    let targetId = formatSteamId(target)
+    // Check if Steam API key is available
+    if (!process.env.STEAM_API_KEY || process.env.STEAM_API_KEY === 'DEMO_MODE') {
+      return NextResponse.json({
+        success: false,
+        errorMessage: 'Steam API is not available in demo mode. Please configure a valid Steam API key.',
+        degree: null,
+        path: null,
+        stats: null,
+        searchId: null,
+        requesterUser: null,
+        targetUser: null,
+      })
+    }
 
-    // Handle vanity URLs
+    console.log('Handshake request:', { source, target })
+
+    // Extract Steam IDs from URLs if needed
+    let sourceInput = source
+    let targetInput = target
+
+    // Handle Steam profile URLs
+    if (source.includes('steamcommunity.com')) {
+      const extracted = extractSteamIdFromUrl(source)
+      if (extracted) {
+        sourceInput = extracted
+      }
+    }
+
+    if (target.includes('steamcommunity.com')) {
+      const extracted = extractSteamIdFromUrl(target)
+      if (extracted) {
+        targetInput = extracted
+      }
+    }
+
+    // Format and validate Steam IDs
+    let sourceId = formatSteamId(sourceInput)
+    let targetId = formatSteamId(targetInput)
+
+    console.log('Formatted IDs:', { sourceId, targetId })
+
+    // Handle vanity URLs and IDs that need resolution
     if (!isSteamId64(sourceId)) {
+      console.log('Resolving source vanity URL:', sourceId)
       const resolvedId = await SteamAPI.resolveVanityURL(sourceId)
+      console.log('Source resolved to:', resolvedId)
       if (!resolvedId) {
         return NextResponse.json(
           { error: 'Invalid source Steam ID or vanity URL' },
@@ -34,7 +73,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isSteamId64(targetId)) {
+      console.log('Resolving target vanity URL:', targetId)
       const resolvedId = await SteamAPI.resolveVanityURL(targetId)
+      console.log('Target resolved to:', resolvedId)
       if (!resolvedId) {
         return NextResponse.json(
           { error: 'Invalid target Steam ID or vanity URL' },
@@ -43,6 +84,8 @@ export async function POST(request: NextRequest) {
       }
       targetId = resolvedId
     }
+
+    console.log('Final Steam IDs:', { sourceId, targetId })
 
     // Run the handshake algorithm
     const result = await HandshakeAlgorithm.findShortestPath(sourceId, targetId)

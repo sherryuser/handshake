@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { SteamAPI } from '@/lib/steam-api'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,13 +81,20 @@ export async function GET() {
             // If it's a vanity URL, try to resolve it
             const vanityMatch = player.general.profile_url.match(/steamcommunity\.com\/id\/([^\/]+)/)
             if (vanityMatch) {
+              const vanityUrl = vanityMatch[1]
               try {
-                // For now, use the vanity URL as identifier
-                // In production, you might want to resolve this to Steam ID64
-                steamId64 = vanityMatch[1]
+                // Only try to resolve if we have a valid Steam API key
+                if (process.env.STEAM_API_KEY && process.env.STEAM_API_KEY !== 'DEMO_MODE') {
+                  steamId64 = await SteamAPI.resolveVanityURL(vanityUrl)
+                }
+                
+                // If resolution failed, keep the vanity URL for now
+                if (!steamId64) {
+                  steamId64 = vanityUrl
+                }
               } catch (error) {
-                console.log('Could not resolve vanity URL:', vanityMatch[1])
-                steamId64 = vanityMatch[1]
+                console.log('Could not resolve vanity URL:', vanityUrl, error)
+                steamId64 = vanityUrl
               }
             }
           }
