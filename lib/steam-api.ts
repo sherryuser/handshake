@@ -43,9 +43,23 @@ export class SteamAPI {
 
   static async resolveVanityURL(vanityUrl: string): Promise<string | null> {
     try {
+      // Check if Steam API key is available
+      if (!STEAM_API_KEY || STEAM_API_KEY === 'DEMO_MODE') {
+        console.error('Steam API key is missing or in demo mode - cannot resolve vanity URL')
+        return null
+      }
+
       const url = `${BASE_URL}/ISteamUser/ResolveVanityURL/v0001/?key=${STEAM_API_KEY}&vanityurl=${vanityUrl}`
+      console.log('Resolving vanity URL:', vanityUrl)
+      
       const response = await this.fetchWithRetry(url)
       const data = await response.json()
+      
+      console.log('Vanity URL resolution result:', {
+        vanityUrl,
+        success: data.response?.success === 1,
+        steamId: data.response?.steamid
+      })
       
       if (data.response?.success === 1) {
         return data.response.steamid
@@ -60,6 +74,12 @@ export class SteamAPI {
 
   static async getUserSummary(steamId: string): Promise<SteamUser | null> {
     try {
+      // Check if Steam API key is available
+      if (!STEAM_API_KEY || STEAM_API_KEY === 'DEMO_MODE') {
+        console.error('Steam API key is missing or in demo mode')
+        return null
+      }
+
       const cacheKey = `user:${steamId}`
       const cached = await redis.get(cacheKey)
       
@@ -68,8 +88,16 @@ export class SteamAPI {
       }
 
       const url = `${BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamId}`
+      console.log('Fetching user summary for:', steamId)
+      
       const response = await this.fetchWithRetry(url)
       const data = await response.json()
+      
+      console.log('Steam API response for user summary:', {
+        status: response.status,
+        hasPlayers: !!data.response?.players?.length,
+        playerCount: data.response?.players?.length || 0
+      })
       
       if (data.response?.players?.length > 0) {
         const user = data.response.players[0]
@@ -82,7 +110,7 @@ export class SteamAPI {
       
       return null
     } catch (error) {
-      console.error('Error fetching user summary:', error)
+      console.error('Error fetching user summary for', steamId, ':', error)
       return null
     }
   }
