@@ -15,7 +15,11 @@ const handshakeRequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('=== HANDSHAKE API DEBUG ===')
+    console.log('Raw request body:', body)
+    
     const { source, target } = handshakeRequestSchema.parse(body)
+    console.log('Parsed source and target:', { source, target })
 
     // Check if Steam API key is available
     console.log('Steam API Key status:', {
@@ -187,9 +191,13 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Handshake API error:', error)
+    console.error('=== HANDSHAKE API ERROR ===')
+    console.error('Error type:', error.constructor.name)
+    console.error('Error message:', error.message)
+    console.error('Full error:', error)
     
     if (error instanceof z.ZodError) {
+      console.error('Zod validation errors:', error.errors)
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
         { status: 400 }
@@ -197,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
