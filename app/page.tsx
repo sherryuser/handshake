@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Gamepad2 as Steam, Github, ExternalLink, TrendingUp } from 'lucide-react'
@@ -14,15 +14,28 @@ export default function HomePage() {
   const router = useRouter()
   const [isSearching, setIsSearching] = useState(false)
   const [searchResult, setSearchResult] = useState<SearchResponse | null>(null)
+  const [steamUser, setSteamUser] = useState<any>(null)
+
+  // Load Steam user from localStorage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('steamUser')
+    if (storedUser) {
+      setSteamUser(JSON.parse(storedUser))
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('steamUser')
+    setSteamUser(null)
+  }
 
   const handleSearch = async (target: string) => {
     setIsSearching(true)
     setSearchResult(null)
 
     try {
-      // For demo purposes, using a fixed source user
-      // In a real app, this would come from Steam OAuth
-      const demoSourceId = '76561198046783516' // Replace with actual logged-in user
+      // Use logged-in user's Steam ID or demo user
+      const sourceId = steamUser?.steamid || '76561198046783516'
 
       const response = await fetch('/api/handshake', {
         method: 'POST',
@@ -30,7 +43,7 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          source: demoSourceId,
+          source: sourceId,
           target: target,
         }),
       })
@@ -99,11 +112,38 @@ export default function HomePage() {
               <span className="text-xl font-bold text-white">Steam Handshakes</span>
             </div>
             
-            {/* Steam Login Button */}
-            <Button variant="glass" size="sm" onClick={() => window.open('https://steamcommunity.com/openid/login', '_blank')}>
-              <Steam className="h-4 w-4 mr-2" />
-              Login with Steam
-            </Button>
+            {/* Steam Login/User Section */}
+            {steamUser ? (
+              <div className="flex items-center space-x-3">
+                <img 
+                  src={steamUser.avatar}
+                  alt={steamUser.personaname}
+                  className="h-8 w-8 rounded-full border border-white/20"
+                />
+                <span className="text-white text-sm">{steamUser.personaname}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="text-white/80 hover:text-white"
+                >
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="glass" 
+                size="sm" 
+                onClick={() => {
+                  const returnUrl = encodeURIComponent(`${window.location.origin}/auth/steam/callback`)
+                  const steamLoginUrl = `https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=${returnUrl}&openid.realm=${encodeURIComponent(window.location.origin)}&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select`
+                  window.location.href = steamLoginUrl
+                }}
+              >
+                <Steam className="h-4 w-4 mr-2" />
+                Login with Steam
+              </Button>
+            )}
           </div>
 
           <motion.h1 
@@ -222,17 +262,28 @@ export default function HomePage() {
           </Card>
         </motion.div>
 
-        {/* Demo Notice */}
+        {/* Login Status Notice */}
         <motion.div variants={itemVariants} className="text-center">
-          <Card className="glass-card border-yellow-500/20 max-w-2xl mx-auto">
+          <Card className={`glass-card max-w-2xl mx-auto ${steamUser ? 'border-green-500/20' : 'border-yellow-500/20'}`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-center space-x-2 mb-3">
-                <div className="h-2 w-2 bg-yellow-400 rounded-full animate-pulse" />
-                <span className="text-yellow-400 font-semibold">Demo Mode</span>
+                <div className={`h-2 w-2 rounded-full animate-pulse ${steamUser ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                <span className={`font-semibold ${steamUser ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {steamUser ? 'Logged In' : 'Demo Mode'}
+                </span>
               </div>
               <p className="text-white/80 text-sm">
-                This is a demonstration version. In the full version, you&apos;d log in with your Steam account
-                to search from your profile. Currently using a demo Steam user for searches.
+                {steamUser ? (
+                  <>
+                    You&apos;re logged in as <span className="font-medium text-blue-400">{steamUser.personaname}</span>. 
+                    Searches will use your Steam account to find connections.
+                  </>
+                ) : (
+                  <>
+                    Log in with your Steam account to search from your profile. 
+                    Currently using a demo Steam user for searches.
+                  </>
+                )}
               </p>
             </CardContent>
           </Card>
