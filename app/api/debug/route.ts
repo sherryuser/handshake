@@ -9,7 +9,14 @@ export async function GET(request: NextRequest) {
   const steamId = searchParams.get('steamId') || '76561198046783516'
 
   try {
-    const debug = {
+    const debug: {
+      input: string
+      steamApiKey: string
+      steamApiKeyValue: string
+      formatted: string
+      isValid: boolean
+      apiError?: string
+    } = {
       input: steamId,
       steamApiKey: process.env.STEAM_API_KEY ? 'PRESENT' : 'MISSING',
       steamApiKeyValue: process.env.STEAM_API_KEY === 'DEMO_MODE' ? 'DEMO_MODE' : process.env.STEAM_API_KEY ? 'SET' : 'MISSING',
@@ -55,23 +62,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { source, target } = body
 
+    const processedSource = {
+      raw: source,
+      extracted: source.includes('steamcommunity.com') ? extractSteamIdFromUrl(source) : null,
+      formatted: formatSteamId(source.includes('steamcommunity.com') ? extractSteamIdFromUrl(source) || source : source),
+      isValid: false
+    }
+    
+    const processedTarget = {
+      raw: target,
+      extracted: target.includes('steamcommunity.com') ? extractSteamIdFromUrl(target) : null,
+      formatted: formatSteamId(target.includes('steamcommunity.com') ? extractSteamIdFromUrl(target) || target : target),
+      isValid: false
+    }
+
+    processedSource.isValid = isSteamId64(processedSource.formatted)
+    processedTarget.isValid = isSteamId64(processedTarget.formatted)
+
     const debug = {
       originalInput: { source, target },
       steamApiKey: process.env.STEAM_API_KEY ? 'PRESENT' : 'MISSING',
-      processedSource: {
-        raw: source,
-        extracted: source.includes('steamcommunity.com') ? extractSteamIdFromUrl(source) : null,
-        formatted: formatSteamId(source.includes('steamcommunity.com') ? extractSteamIdFromUrl(source) || source : source),
-      },
-      processedTarget: {
-        raw: target,
-        extracted: target.includes('steamcommunity.com') ? extractSteamIdFromUrl(target) : null,
-        formatted: formatSteamId(target.includes('steamcommunity.com') ? extractSteamIdFromUrl(target) || target : target),
-      }
+      processedSource,
+      processedTarget
     }
-
-    debug.processedSource.isValid = isSteamId64(debug.processedSource.formatted)
-    debug.processedTarget.isValid = isSteamId64(debug.processedTarget.formatted)
 
     return NextResponse.json({
       debug,
